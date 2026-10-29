@@ -94,24 +94,31 @@ sudo gpasswd -a "$USER" i2c
 
 # COPY FILES
 # Everything is copied over your files, except pref.py (your settings): if yours
-# differs from the repository's, you can see the differences and choose which to keep.
+# differs from the repository's, you can see the differences and choose which to keep,
+# or use another file (a backup, say).
 
 pref=$HOME/.config/pytwm/pref.py
 repo_pref=filesystem/home/user/.config/pytwm/pref.py
-keep_mine=no
+keep=""   # file that becomes pref.py after the copy; empty: the repository's
 
 if [ -e "$pref" ] && ! cmp -s "$pref" "$repo_pref"; then
     echo "Your pref.py differs from the repository's."
     read -r -p "Show the differences? [y/n] " answer
     [ "$answer" = y ] &&
         diff --color=always -u --label "yours" --label "repository" "$pref" "$repo_pref" | less -RFX
-    read -r -p "[k]eep yours or take the [r]epository's pref.py? [k/r] " answer
-    [ "$answer" = r ] || keep_mine=yes
+    read -r -p "[k]eep yours, take the [r]epository's or use an[o]ther file? [K/r/o] " answer
+    case $answer in
+        r) ;;
+        o) while read -r -e -p "File: " keep; keep=${keep/#\~/$HOME}; [ ! -f "$keep" ]; do
+               echo "Not a file: $keep"
+           done ;;
+        *) keep=$pref ;;
+    esac
 fi
 
-[ $keep_mine = yes ] && cp "$pref" /tmp/pytwm-pref.py
+[ -n "$keep" ] && cp "$keep" /tmp/pytwm-pref.py
 cp -r filesystem/home/user/. "$HOME"
-[ $keep_mine = yes ] && mv /tmp/pytwm-pref.py "$pref"
+[ -n "$keep" ] && mv /tmp/pytwm-pref.py "$pref"
 rm -rf "$HOME/.config/pytwm/__pycache__"
 chmod +x "$HOME"/.config/pytwm/*.sh       # in case the copy lost it (USB stick, sync)
 
