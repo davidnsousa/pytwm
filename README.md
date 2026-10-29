@@ -4,12 +4,14 @@ pytwm is a tiling window manager for X11, written in Python, with a program laun
 status bar, screen lock and notifications. This repository also sets up an Arch Linux
 desktop around it.
 
+![pytwm](screenshot.png)
+
 ## Install
 
 Requires Arch Linux.
 
 ```sh
-git clone --depth 1 https://github.com/davidnsousa/pytwm
+git clone https://github.com/davidnsousa/pytwm
 cd pytwm
 bash setup.sh
 ```
