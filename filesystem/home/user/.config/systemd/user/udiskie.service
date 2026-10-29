@@ -1,0 +1,10 @@
+[Unit]
+Description=Mount removable drives automatically (udiskie)
+
+[Service]
+# no notifications or tray icon, so it works without X (on a text console too)
+ExecStart=/usr/bin/udiskie --no-notify --no-tray
+Restart=on-failure
+
+[Install]
+WantedBy=default.target

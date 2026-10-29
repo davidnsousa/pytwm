@@ -1,0 +1,44 @@
+[window]
+opacity = 0.85                  # the background lets the wallpaper through (needs the compositor); 1.0 = solid
+padding = { x = 12, y = 10 }    # space between the text and the window edges
+dynamic_padding = true          # spreads leftover space evenly, so the text is centered
+
+[font]
+normal = { family = "JetBrainsMono Nerd Font", style = "Regular" }
+size = 11
+
+[cursor]
+style = { shape = "Beam", blinking = "On" }
+unfocused_hollow = true
+
+[colors]
+transparent_background_colors = true   # also programs' own backgrounds (nvim, btop...)
+
+# Catppuccin Mocha, the same theme as nvim
+[colors.primary]
+background = "#1e1e2e"
+foreground = "#cdd6f4"
+
+[colors.cursor]
+text = "#1e1e2e"
+cursor = "#f5e0dc"
+
+[colors.normal]
+black = "#45475a"
+red = "#f38ba8"
+green = "#a6e3a1"
+yellow = "#f9e2af"
+blue = "#89b4fa"
+magenta = "#f5c2e7"
+cyan = "#94e2d5"
+white = "#bac2de"
+
+[colors.bright]
+black = "#585b70"
+red = "#f38ba8"
+green = "#a6e3a1"
+yellow = "#f9e2af"
+blue = "#89b4fa"
+magenta = "#f5c2e7"
+cyan = "#94e2d5"
+white = "#a6adc8"

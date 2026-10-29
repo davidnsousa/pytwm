@@ -1,0 +1,37 @@
+# pytwm's additions to bash. setup.sh adds a line to ~/.bashrc that reads this
+# file; put your own settings in ~/.bashrc, this file is replaced on update.
+
+# editor for git commit, sudoedit, visudo and other command-line tools
+export EDITOR=nvim
+export VISUAL=nvim
+
+# dialog colors that read well on the translucent terminal
+export DIALOGRC=~/.config/pytwm/dialogrc
+
+PS1='\[\033[1;34m\]\w\[\033[0m\] > '
+
+alias ls='ls --color=auto'
+
+# Up / Down: search the history for what you started typing
+bind '"\e[A": history-search-backward'
+bind '"\e[B": history-search-forward'
+
+# Alt+Right: ls; Alt+Left: go up one folder
+cd_up() {
+    cd ..
+    printf "\033[1A\033[0K" # Move cursor up one line and clear it
+}
+bind '"\e[1;3C": "ls\n"'
+bind '"\e[1;3D": "cd_up\n"'
+
+# calc: a calculator; type an expression, $ans is the last result, Ctrl+D quits
+calc() {
+    while true; do
+        read -e -r -p ": " expr || break
+        history -s "$expr"
+        expr="${expr//\$ans/$ans}"
+        local in="$(echo " $expr" | sed -e 's/\[/(/g' -e 's/\]/)/g')"
+        ans=$(gawk -M -v PREC=201 'BEGIN {printf("%.4g",'"${in-0}"')}')
+        printf "%*s\n" 20 "$ans"
+    done
+}
