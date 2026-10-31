@@ -504,7 +504,7 @@ KEYS = []
 BUTTONS = []
 RULES = []
 queued = []           # events set aside while a mouse grab loop runs
-last_error = None     # shown in the bar after a failed reload or handler crash
+last_error = None     # an error that couldn't be a notification, shown in the status area
 
 
 def ISVISIBLE(c):
@@ -1474,7 +1474,6 @@ def restack(m):
 
 def run():
     """Main event loop. Also checks every half second whether this file was saved."""
-    global last_error
     dpy.sync()
     fd = dpy.fileno()
     mtime = file_mtime()
@@ -1488,8 +1487,7 @@ def run():
                     h(ev)
                 except Exception:
                     traceback.print_exc()
-                    last_error = "pytwm error: %s" % sys.exc_info()[1]
-                    drawbars()
+                    showerror("pytwm error: %s" % sys.exc_info()[1])
         if not running:
             break
         r, _, _ = select.select([fd, _wake_r], [], [], 0.05 if notify_flashing() else 0.5)
@@ -2839,9 +2837,18 @@ def _background(func, arg):
 
 
 def showerror(msg):
+    """An error, as a critical notification on the bar: it stays until clicked
+    away, and the status text stays. In the status area if that fails."""
     global last_error
-    last_error = msg
-    drawbars()
+    try:
+        nid = notify_add("", 0, "", msg, 2, -1, "")
+        for n in notify_queue:
+            if n["id"] == nid:
+                n["error"] = True     # dropped on a reload, which shows it again if it's still there
+    except Exception:
+        traceback.print_exc()
+        last_error = msg
+        drawbars()
 
 
 def call_main(func, *args):
@@ -4788,6 +4795,7 @@ def restorestate():
     nt = state.get("notify")
     if nt:
         notify_queue, notify_paused, notify_next_id = nt["queue"], nt["paused"], nt["next_id"]
+        notify_queue[:] = [n for n in notify_queue if not n.get("error")]  # shown again if still there
     # scan() already tiled every window onto the first tag; move them back
     # to their saved geometry so arrange() starts from the real positions
     for m in mons:
@@ -4817,7 +4825,7 @@ def reload(arg):
 
 
 def main():
-    global dpy, last_error
+    global dpy
     if len(sys.argv) == 2 and sys.argv[1] == "-v":
         die("pytwm-" + VERSION)
     elif sys.argv[1:] == ["lock"]:
@@ -4859,11 +4867,11 @@ def main():
                          daemon=True).start()
     for k in ("PYTWM_FALLBACK", "PYTWM_NOTIFY_FD", "PYTWM_NOTIFY_NAME"):
         os.environ.pop(k, None)     # started fine, no fallback needed
-    last_error = os.environ.pop("PYTWM_ERROR", None)
-    if pref_clashes and not last_error:
-        last_error = "pref.py: %s hides pytwm's function of that name; rename it" % ", ".join(pref_clashes)
-    if last_error:
-        drawbars()
+    err = os.environ.pop("PYTWM_ERROR", None)
+    if err:
+        showerror(err)
+    if pref_clashes:
+        showerror("pref.py: %s hides pytwm's function of that name; rename it" % ", ".join(pref_clashes))
     run()
     stop_watches()
     cleanup()

@@ -144,7 +144,7 @@ pytwm runs picom with these settings. `compositor = None` turns it off. Use `"xr
 
 ### Notifications
 
-Notifications show in the middle of the bar, one at a time. `(+2)` means two more are waiting. Critical ones come first and stay until dismissed.
+Notifications show in the middle of the bar, one at a time. `(+2)` means two more are waiting. Critical ones come first and stay until dismissed. pytwm's own errors show this way too.
 
 ```python
 notification_timeout = 10    # seconds
