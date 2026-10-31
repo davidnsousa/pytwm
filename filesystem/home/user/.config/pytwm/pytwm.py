@@ -3712,6 +3712,7 @@ WALLPAPER_MODES = ("fill", "fit", "stretch", "center", "tile")
 class Pixbuf:
     """A picture loaded with gdk-pixbuf."""
     _lib = None
+    h_ = None
 
     def __init__(self, path=None, handle=None):
         L = Pixbuf.lib()
@@ -3747,11 +3748,18 @@ class Pixbuf:
         if self.h_:
             Pixbuf.lib().unref(self.h_)
 
+    @staticmethod
+    def made(handle, what):
+        """A new picture from gdk-pixbuf, which gives NULL (None here) when it can't."""
+        if not handle:
+            raise OSError("gdk-pixbuf couldn't %s the picture" % what)
+        return Pixbuf(handle=handle)
+
     def crop(self, x, y, w, h):
-        return Pixbuf(handle=Pixbuf.lib().gdk_pixbuf_new_subpixbuf(self.h_, x, y, w, h))
+        return Pixbuf.made(Pixbuf.lib().gdk_pixbuf_new_subpixbuf(self.h_, x, y, w, h), "cut")
 
     def scale(self, w, h):
-        return Pixbuf(handle=Pixbuf.lib().gdk_pixbuf_scale_simple(self.h_, max(w, 1), max(h, 1), 2))
+        return Pixbuf.made(Pixbuf.lib().gdk_pixbuf_scale_simple(self.h_, max(w, 1), max(h, 1), 2), "scale")
 
     def bgrx(self):
         """The pixels as X wants them (blue, green, red, unused), row after row."""
@@ -3799,7 +3807,11 @@ def wallpaper_monitor(pm, gc, depth, pic, mode, mx, my, mw, mh):
 
 
 def wallpaper_update():
-    """Puts pref.py's wallpaper on the screen, if it changed."""
+    """Puts pref.py's wallpaper on the screen, if it changed or isn't there any more."""
+    def fail(msg):
+        sys.stderr.write("pytwm: %s\n" % msg)
+        return showerror(msg)
+
     wp = prefns.get("wallpaper")
     if not wp:
         return
@@ -3809,14 +3821,27 @@ def wallpaper_update():
     try:
         stamp = None if is_color else os.stat(path).st_mtime
     except OSError:
-        return showerror("wallpaper: can't find %s" % wp)
+        return fail("wallpaper: can't find %s" % wp)
     key = repr((wp, mode, stamp, [(m.mx, m.my, m.mw, m.mh) for m in mons]))
-    if os.environ.get("PYTWM_WALLPAPER") == key:
-        return
+    mine = os.environ.get("PYTWM_WALLPAPER_PM")       # the pixmap pytwm set last
+    if os.environ.get("PYTWM_WALLPAPER") == key and mine:
+        shown = root.get_full_property(dpy.intern_atom("_XROOTPMAP_ID"), Xatom.PIXMAP)
+        if shown and shown.value and str(shown.value[0]) == mine:
+            return
     if mode not in WALLPAPER_MODES:
-        return showerror("wallpaper_mode: use one of %s" % ", ".join(WALLPAPER_MODES))
+        return fail("wallpaper_mode: use one of %s" % ", ".join(WALLPAPER_MODES))
+    os.environ.pop("PYTWM_WALLPAPER", None)            # set again only when it worked
+    errs, d = [], None
     try:
         d = open_display()
+        d.set_error_handler(lambda err, req: errs.append(err))
+
+        def check(what):
+            """The requests so far are answered; an X error in any of them is a failure."""
+            d.sync()
+            if errs:
+                raise OSError("X error %s: %s" % (what, errs[0]))
+
         scr = d.screen()
         r = scr.root
         depth = scr.root_depth
@@ -3829,21 +3854,32 @@ def wallpaper_update():
             pic = Pixbuf(path)
             for m in mons:
                 wallpaper_monitor(pm, gc, depth, pic, mode, m.mx, m.my, m.mw, m.mh)
-        # the previous wallpaper's pixmap, left behind the same way, goes
+        check("drawing the wallpaper")              # before the root shows it
+        # the previous wallpaper's pixmap, left behind the same way, goes; only
+        # pytwm's own: another id's client may be gone and its id reused by a live one
         atoms = [d.intern_atom(n) for n in ("_XROOTPMAP_ID", "ESETROOT_PMAP_ID")]
         old = r.get_full_property(atoms[1], Xatom.PIXMAP)
-        if old and old.value and old.value[0] != pm.id:
+        if old and old.value and str(old.value[0]) == mine and old.value[0] != pm.id:
             d.create_resource_object("pixmap", old.value[0]).kill_client()
+            os.environ.pop("PYTWM_WALLPAPER_PM", None)
         for a in atoms:
             r.change_property(a, Xatom.PIXMAP, 32, [pm.id])
         r.change_attributes(background_pixmap=pm)
         r.clear_area()
         d.set_close_down_mode(X.RetainPermanent)
+        check("setting the wallpaper")              # after the mode: sent alone at close, it was lost
         d.close()
     except Exception as ex:
         traceback.print_exc()
+        if d:
+            try:
+                d.set_close_down_mode(X.DestroyAll)  # not retained: its pixmap goes
+                d.close()
+            except Exception:
+                pass
         return showerror("wallpaper: %s" % ex)
     os.environ["PYTWM_WALLPAPER"] = key
+    os.environ["PYTWM_WALLPAPER_PM"] = str(pm.id)
 
 
 # ============================================================================
