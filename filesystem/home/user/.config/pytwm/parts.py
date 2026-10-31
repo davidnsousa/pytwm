@@ -344,6 +344,25 @@ def updates_check():
         notify("Updates available!")
 
 
+def pytwm_updates_check():
+    """Once the network is up, says whether pytwm has a newer commit on GitHub
+    than the one setup.sh installed."""
+    from datetime import datetime
+    try:
+        with open(os.path.expanduser("~/.local/state/pytwm/installed")) as f:
+            installed = datetime.fromisoformat(f.read().strip())
+    except (OSError, ValueError):       # not installed by setup.sh from a git clone
+        return
+    wait_for_network()
+    reply = output(["curl", "-sf", "https://api.github.com/repos/davidnsousa/pytwm/commits/main"], 15)
+    try:
+        latest = datetime.fromisoformat(json.loads(reply)["commit"]["committer"]["date"])
+    except (ValueError, KeyError, TypeError):   # no answer, or GitHub refused
+        return
+    if latest > installed:
+        notify("pytwm updates available!")
+
+
 def wait_for_network():
     """Waits until NetworkManager says the internet is reachable: "full" after its
     own check, or just "connected" when that check is turned off ("unknown")."""

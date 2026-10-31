@@ -31,8 +31,17 @@ Errors are written to `~/.local/state/pytwm/pytwm.log`.
 
 ## Update
 
-Run `setup.sh` again from a newer copy of the repository. It replaces all files
-except `pref.py`: if yours differs, it shows the differences and asks which to keep.
+At login, pytwm notifies you when there is a newer version on GitHub. To update,
+get it into your copy of the repository and run `setup.sh` again:
+
+```sh
+cd pytwm
+git pull
+bash setup.sh
+```
+
+`setup.sh` replaces all files except `pref.py`: if yours differs, it shows the
+differences and asks which to keep.
 
 ## Credits and license
 

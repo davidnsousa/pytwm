@@ -32,6 +32,7 @@ Keys are set in `keys()` in `pref.py`, so this document names functions, not key
 - [What happens when you save](#what-happens-when-you-save)
 - [Testing in a window](#testing-in-a-window)
 - [How it runs](#how-it-runs)
+- [Updating](#updating)
 
 ## Editing pref.py
 
@@ -312,6 +313,7 @@ Loops in `parts.py`, started from `autostart()`:
 
 - `battery_watch()`: notifies when the charger is plugged in or out, and warns when the battery is at or below `battery_low` percent.
 - `updates_check()`: notifies when package updates are available.
+- `pytwm_updates_check()`: notifies when there is a newer version of pytwm on GitHub (see [Updating](#updating)).
 
 ## Functions for pref.py
 
@@ -367,5 +369,18 @@ Press Ctrl+Shift in the Xephyr window to send your keys to it; again to release 
 - Images open in nsxiv. Removable drives are mounted by udiskie.
 - Saved passwords are kept in gnome-keyring, unlocked at login. Electron apps use it through `~/.config/electron-flags.conf`.
 - Bash gets its prompt, history search (Up/Down), Alt+Left/Right and `calc` from `~/.config/pytwm/bashrc_extras`. `~/.bashrc` stays yours; `setup.sh` only adds the line that reads that file.
-- To update, run `setup.sh` again from a newer copy of the repository. It replaces all files except `pref.py`: if yours differs, it offers to show the differences and asks which to keep.
 - After adding a Python package: `~/.local/share/pytwm/venv/bin/pip freeze > ~/.config/pytwm/requirements.txt`.
+
+## Updating
+
+At login, `pytwm_updates_check()` notifies you when there is a newer version of pytwm on GitHub. To update, get it into the copy of the repository you installed from and run `setup.sh` again:
+
+```sh
+cd pytwm
+git pull
+bash setup.sh
+```
+
+`setup.sh` replaces all files except `pref.py`: if yours differs, it offers to show the differences and asks which to keep.
+
+`setup.sh` saves the date of the commit it installed in `~/.local/state/pytwm/installed`; the check compares it with the latest commit on GitHub. Your own commits don't count as updates, pushed or not. Without that file (pytwm not installed by `setup.sh` from a git clone) there is no check.

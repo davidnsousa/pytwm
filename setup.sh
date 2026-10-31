@@ -181,5 +181,12 @@ python -m venv "$venv"
 "$venv/bin/pip" install --upgrade pip
 "$venv/bin/pip" install -r "$HOME/.config/pytwm/requirements.txt"
 
+# the date of the commit installed, for pytwm_updates_check() (not saved when this
+# copy of the repository is not a git clone)
+
+state=$HOME/.local/state/pytwm
+mkdir -p "$state"
+date=$(git log -1 --format=%cI 2>/dev/null) && echo "$date" > "$state/installed"
+
 echo
 echo "Finished! Reboot."

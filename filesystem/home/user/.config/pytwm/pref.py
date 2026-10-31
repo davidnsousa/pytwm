@@ -244,6 +244,7 @@ def autostart():
     launch(terminal)
     in_background(battery_watch)
     in_background(updates_check)
+    in_background(pytwm_updates_check)
 
     wait_for_network()           # the apps below need it
     launch(vpn_connect)
