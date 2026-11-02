@@ -70,6 +70,12 @@ yay --noconfirm
 
 yay -S --needed --noconfirm "${PKGS[@]}"
 
+# INSTALL qfm, the file manager (in /opt/qfm; running setup.sh again updates it)
+
+build=$(mktemp -d)
+git clone --depth 1 https://github.com/davidnsousa/qfm.git "$build/qfm" && "$build/qfm/install.sh"
+rm -rf "$build"
+
 # OPTIONAL: Printing/scanning support
 
 export DIALOGRC=filesystem/home/user/.config/pytwm/dialogrc   # dialog colors
@@ -138,6 +144,14 @@ has_default() {   # has_default TYPE: ~/.config/mimeapps.list sets a default app
 }
 has_default image/png || xdg-mime default nsxiv.desktop image/png image/jpeg image/jpg image/gif \
   image/webp image/bmp image/tiff image/avif image/jxl image/heic image/heif image/svg+xml
+
+# folders open in qfm, which also answers other apps' "Show in folder" (qfm's own
+# setting "Open folders with qfm", which can turn it off again)
+
+[ -x /opt/qfm/.venv/bin/python ] && /opt/qfm/.venv/bin/python -c '
+import sys; sys.path.insert(0, "/opt/qfm")
+from qfmlib import fm1, store
+s = store.Store(); fm1.enable(s.options); s.options["default_fm"] = True; s.save_options()'
 
 # btop: Tokyo Night theme, unless you chose another one (btop fills in the rest of
 # its file when you quit it with q)
