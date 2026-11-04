@@ -32,10 +32,19 @@ rates() {   # rates NAME RESOLUTION: its refresh rates
 
 apply() {   # apply XRANDR-ARGS...: change the layout, and undo it unless it is kept
     local before
-    before=$(xrandr --query | awk '/ connected/ { name = $1; pos = "--off"
-        for (i = 3; i <= NF; i++) if ($i ~ /^[0-9]+x[0-9]+\+/) {
-            split($i, p, /[x+]/); pos = "--mode " p[1] "x" p[2] " --pos " p[3] "x" p[4] }
-        printf "--output %s %s%s ", name, pos, ($3 == "primary" ? " --primary" : "") }')
+    # the mode is the one marked *, not the size on the screen, which is larger
+    # on a monitor pytwm scales (dpi = "auto"); pytwm sets the scale again itself
+    before=$(xrandr --query | awk '
+        function out() { if (name != "") printf "--output %s %s%s ", name,
+            (mode != "" && pos != "" ? "--mode " mode " --pos " pos : "--off"), primary }
+        /^[^ ]/ { out(); name = ""
+            if ($2 != "connected") next
+            name = $1; mode = ""; pos = ""; primary = ($3 == "primary" ? " --primary" : "")
+            for (i = 3; i <= NF; i++) if ($i ~ /^[0-9]+x[0-9]+\+/) {
+                split($i, p, /[x+]/); pos = p[3] "x" p[4] }
+            next }
+        name != "" && index($0, "*") { mode = $1 }
+        END { out() }')
     xrandr "$@" || { dialog --msgbox "xrandr could not do that." 6 40; return; }
     if ! dialog --timeout 15 --yesno "Keep this layout?\n\nIt goes back by itself in 15 seconds." 8 44; then
         xrandr $before

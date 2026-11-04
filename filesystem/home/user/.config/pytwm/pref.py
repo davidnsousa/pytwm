@@ -23,7 +23,7 @@ import time
 # ============================================================================
 
 fonts = ["monospace:size=9", "JetBrainsMono Nerd Font Propo:size=9"]  # first font is the main one, the rest are fallbacks (the Nerd Font has the bar's icons)
-dpi = None                    # text size: None is the normal size (96); 192 doubles it (QHD/4K)
+dpi = "auto"                  # size of text and GTK apps: "auto" from the monitors; 96 normal, 192 doubles it; None leaves it to ~/.Xresources
 
 # Colors are "#rrggbb" strings.
 background  = "#222222"       # bar and menu background

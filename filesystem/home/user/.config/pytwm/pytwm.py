@@ -774,6 +774,7 @@ def configurenotify(e):
     global screen_w, screen_h
     # the screen size changed (a monitor was added, removed or resized)
     if e.window.id == root.id:
+        scale_update()              # dpi = "auto": reloads if the scale changed
         dirty = screen_w != e.width or screen_h != e.height
         screen_w = e.width
         screen_h = e.height
@@ -4165,15 +4166,16 @@ def apply_gtk_settings():
 
 
 def apply_dpi():
-    """Set Xft.dpi in the X resources (what `xrdb` does with ~/.Xresources), so
-    pytwm and the X apps started after it use that text size. dpi = None
-    leaves the resources as they are."""
-    value = prefns.get("dpi")
+    """Set Xft.dpi and Xcursor.size in the X resources (what `xrdb` does with
+    ~/.Xresources), so pytwm and the X apps started after it use that text
+    and cursor size. dpi = None leaves the resources as they are."""
+    value = text_dpi()
     if not value:
         return
     res = xcall(root.get_full_property, Xatom.RESOURCE_MANAGER, Xatom.STRING)
     lines = bytes(res.value).decode("utf-8", "replace").splitlines() if res else []
-    lines = [l for l in lines if not l.startswith("Xft.dpi:")] + ["Xft.dpi:\t%s" % value]
+    lines = [l for l in lines if not l.startswith(("Xft.dpi:", "Xcursor.size:"))]
+    lines += ["Xft.dpi:\t%s" % value, "Xcursor.size:\t%d" % (24 * gtk_scale())]
     root.change_property(Xatom.RESOURCE_MANAGER, Xatom.STRING, 8,
                          ("\n".join(lines) + "\n").encode())
     dpy.sync()
@@ -4212,8 +4214,12 @@ def xsettings_update(theme=None):
                                              ("icon_theme", "Net/IconThemeName"),
                                              ("cursor_theme", "Gtk/CursorThemeName"),
                                              ("font", "Gtk/FontName")) if g.get(k)]
-    if prefns.get("dpi"):
-        settings.append(("Xft/DPI", int(prefns["dpi"] * 1024)))
+    dpi, scale = text_dpi(), gtk_scale()
+    if dpi:
+        # widgets scaled, and the text set back so it isn't scaled twice
+        settings += [("Xft/DPI", int(dpi * 1024)), ("Gdk/WindowScalingFactor", scale),
+                     ("Gdk/UnscaledDPI", int(dpi / scale * 1024)),
+                     ("Gtk/CursorThemeSize", 24 * scale)]
     pad = lambda b: b + b"\0" * (-len(b) % 4)
     data = struct.pack("<B3xII", 0, xsettings_serial, len(settings))   # 0: little endian
     for name, value in settings:
@@ -4229,6 +4235,111 @@ def xsettings_update(theme=None):
     xsettings_win.change_property(atom, atom, 8, data)
     xsettings_serial += 1
     dpy.flush()
+
+
+# ============================================================================
+#  Screen scale
+#
+#  The size of apps comes from dpi in pref.py: a number, or "auto". Text is
+#  drawn at that dpi; GTK apps also scale their widgets, icons and cursor by
+#  the whole number nearest dpi / 96 (2 at 192), with their text set back so
+#  it isn't scaled twice (see xsettings_update).
+#  With "auto" the scale comes from the monitors that are on: each one gets a
+#  whole scale from its pixel density, aiming at about 135 dots per inch on a
+#  laptop panel (seen from closer) and 110 on other monitors. X has one size
+#  for apps on every monitor, so the largest scale is used (dpi 96 times it),
+#  and xrandr draws the monitors with a smaller one larger (--scale 2x2 on a
+#  plain monitor next to a 2x laptop): apps look the same size on all of
+#  them, a little softer on those. They are moved so they still touch the way
+#  they did. When a change of monitors changes the scale, pytwm reloads, to
+#  open the bar's fonts at the new size; open apps keep their size until they
+#  are started again.
+# ============================================================================
+
+screen_scale = 1                         # with dpi = "auto": the largest of the monitors' scales
+LAPTOP_OUTPUTS = ("eDP", "LVDS", "DSI")  # how xrandr names built-in panels
+
+
+def text_dpi():
+    """The dpi for text, or None to leave it as the X resources have it."""
+    d = prefns.get("dpi")
+    return 96 * screen_scale if d == "auto" else d
+
+
+def gtk_scale():
+    """The whole number GTK apps scale their widgets by."""
+    return max(1, int(text_dpi() / 96 + 0.5)) if text_dpi() else 1
+
+
+def randr_monitors():
+    """The monitors that are on, from RandR: their output name, where they are
+    (x, y, w, h, as drawn now), the xrandr scale they have ("now") and the
+    scale their pixel density asks for ("own")."""
+    from Xlib.ext import randr
+    res = randr.get_screen_resources(root)
+    modes = {m.id: m for m in res.modes}
+    found = []
+    for o in res.outputs:
+        oi = randr.get_output_info(dpy, o, res.config_timestamp)
+        if oi.connection != randr.Connected or not oi.crtc:
+            continue
+        ci = randr.get_crtc_info(dpy, oi.crtc, res.config_timestamp)
+        mode = modes.get(ci.mode)
+        if not mode:
+            continue
+        own = 1
+        if oi.mm_width >= 100:              # less: a projector or TV that gives no real size
+            target = 135 if oi.name.startswith(LAPTOP_OUTPUTS) else 110
+            own = max(1, int(mode.width * 25.4 / oi.mm_width / target + 0.5))
+        now = randr.get_crtc_transform(dpy, oi.crtc).current_transform.matrix11 / 65536
+        found.append({"name": oi.name, "x": ci.x, "y": ci.y, "w": ci.width, "h": ci.height,
+                      "now": abs(now) or 1, "own": own})
+    return found
+
+
+def rescale_monitors(found, scale):
+    """Run xrandr so every monitor is drawn at this scale: each one larger by
+    scale / its own, and moved so they still touch the way they did (one that
+    was right of another is still right of it, and so on)."""
+    for m in found:
+        grow = scale / m["own"] / m["now"]
+        m["nw"], m["nh"] = round(m["w"] * grow), round(m["h"] * grow)
+    for axis, size in (("x", "w"), ("y", "h")):
+        done = []
+        for m in sorted(found, key=lambda m: m[axis]):
+            m["n" + axis] = max([p["n" + axis] + p["n" + size] for p in done
+                                 if p[axis] + p[size] <= m[axis]], default=0)
+            done.append(m)
+    cmd = ["xrandr"]
+    for m in found:
+        s = scale / m["own"]
+        cmd += ["--output", m["name"], "--scale", "%gx%g" % (s, s),
+                "--pos", "%dx%d" % (m["nx"], m["ny"])]
+    return run_ok(cmd)
+
+
+def scale_update(starting=False):
+    """With dpi = "auto": the scale from the monitors, xrandr drawing the
+    monitors with a smaller one larger, and a reload if the scale changed
+    (starting: the scale is just taken, setup() uses it)."""
+    global screen_scale
+    if prefns.get("dpi") != "auto":
+        return
+    try:
+        found = randr_monitors()
+    except Exception as ex:                 # no RandR (some test servers)
+        sys.stderr.write("pytwm: dpi auto: %s: %s\n" % (type(ex).__name__, ex))
+        return
+    if not found:
+        return
+    scale = max(m["own"] for m in found)
+    if any(abs(m["now"] - scale / m["own"]) > 0.01 for m in found):
+        if not rescale_monitors(found, scale):
+            sys.stderr.write("pytwm: dpi auto: xrandr could not scale the monitors\n")
+    if starting:
+        screen_scale = scale
+    elif scale != screen_scale:
+        reload(None)
 
 
 # ============================================================================
@@ -4844,6 +4955,7 @@ def main():
     os.environ.setdefault("DIALOGRC", os.path.join(HERE, "dialogrc"))   # dialog colors, for every program
     checkotherwm()
     load_prefs()
+    scale_update(starting=True)     # dpi = "auto": the scale from the monitors
     apply_dpi()                     # before setup() opens the fonts
     setup()
     scan()

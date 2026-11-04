@@ -57,9 +57,13 @@ System menu → Configuration files opens `pref.py`, `parts.py` and other config
 | `accent` | selected tag, focused title and border, lock while typing |
 | `colors` | `"norm"`, `"sel"` and `"urgent"`, each `(text, background, border)` |
 | `fonts` | e.g. `["monospace:size=9"]`; the first is the main font, the rest are fallbacks |
-| `dpi` | text size: `None` is 96, `192` doubles it |
+| `dpi` | size of text and GTK apps: `"auto"` works it out from the monitors, `96` is normal, `192` doubles it, `None` leaves it to `~/.Xresources` |
 
 Colors are `"#rrggbb"`. Fonts are `"family:size=N"`.
+
+GTK apps scale their widgets, icons and cursor by the whole number nearest `dpi / 96` (2 at 192), so they keep their proportions; the text follows `dpi` exactly (`168` gives 2× widgets with 1.75× text).
+
+With `dpi = "auto"`, each monitor that is on gets a scale of 1, 2 or 3 from its pixel density (a laptop panel aims a little denser, as it is seen from closer). X has one size for apps on all monitors, so the largest scale is used, and xrandr draws the other monitors larger (`--scale 2x2` on a plain monitor next to a 2× laptop) so apps look the same size on every monitor, a little softer on those. When monitors are turned on or off and the scale changes, pytwm restarts in place at the new size; apps already open keep their size until you start them again.
 
 ### Bar and windows
 
