@@ -3587,6 +3587,8 @@ def notify_handle(msg):
         hv = {k: v[1] for k, v in hints.items()}
         urgency = max(0, min(2, int(hv.get("urgency", 1))))
         tag = str(hv.get("x-canonical-private-synchronous") or "")
+        if notify_paused:
+            in_thread(notify_hush, appname)
         reply("u", (notify_add(appname, replaces_id, summary, body, urgency, timeout, tag,
                                actions),))
     elif iface in (NOTIFY_IFACE, None) and member == "CloseNotification":
@@ -3700,6 +3702,56 @@ def pause_notifications(paused=True):
     global notify_paused
     notify_paused = bool(paused)
     call_main(lambda: (notify_tick(), drawbars()))
+
+
+# While notifications are paused, their sounds are muted too. pytwm plays
+# none itself: the apps do (Mailspring, browser tabs, libcanberra). So when a
+# notification comes in while paused, the sounds that start in the next few
+# seconds, from the sending app or "event" sounds, are muted, then unmuted.
+# Sounds already playing (music, a video) are left alone.
+HUSH_SECONDS = 4
+hush = {"until": 0.0, "apps": set(), "running": False}
+hush_lock = threading.Lock()
+
+
+def sink_inputs():
+    """The audio streams playing now, from pactl."""
+    try:
+        return json.loads(output(["pactl", "-f", "json", "list", "sink-inputs"]) or "[]")
+    except ValueError:
+        return []
+
+
+def notify_hush(appname):
+    with hush_lock:
+        hush["until"] = time.monotonic() + HUSH_SECONDS
+        if appname:
+            hush["apps"].add(appname.lower())
+        if hush["running"]:
+            return
+        hush["running"] = True
+    playing = {s.get("index") for s in sink_inputs()}     # already playing: left alone
+    muted = set()
+    while True:
+        with hush_lock:
+            if time.monotonic() >= hush["until"]:
+                hush["running"] = False
+                hush["apps"].clear()
+                break
+            apps = set(hush["apps"])
+        for s in sink_inputs():
+            if s.get("index") in playing or s.get("index") in muted or s.get("mute"):
+                continue
+            p = s.get("properties", {})
+            names = {str(p.get(k, "")).lower() for k in ("application.name", "application.process.binary")}
+            names.discard("")
+            ours = any(a in n or n in a for a in apps for n in names)
+            if ours or p.get("media.role") == "event":
+                if run_ok(["pactl", "set-sink-input-mute", str(s["index"]), "1"]):
+                    muted.add(s["index"])
+        time.sleep(0.1)
+    for index in muted:
+        run_ok(["pactl", "set-sink-input-mute", str(index), "0"])
 
 
 # ============================================================================
