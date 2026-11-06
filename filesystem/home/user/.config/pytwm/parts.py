@@ -14,6 +14,37 @@ import shutil
 import time
 
 # ============================================================================
+#  Settings
+#  Ones that rarely change. Set any of them in pref.py to change it.
+# ============================================================================
+
+snap = 32                     # snap pixel (move/resize with the mouse)
+resizehints = True    # True means respect size hints in tiled resizals
+lockfullscreen = True # True will force focus on the fullscreen window
+menu_case_insensitive = True
+menu_worddelimiters = " "    # characters that separate words for Ctrl+w
+lock_failonclear = True      # show "failed" when the input is cleared
+session_display = ":0"        # the display your session runs on (see: echo $DISPLAY)
+autoreload = True     # restart in place when pytwm.py, pref.py or parts.py is saved
+
+# Mouse buttons: "place: keys+button" (places: tags, layout, title, status, window, desktop)
+def buttons():   # a function, so it sees terminal and the rest of pref.py
+    return {
+        "layout: button1":        setlayout,                 # back to the last layout
+        "layout: button3":        (setlayout, 2),
+        "title: button2":         zoom,
+        "status: button2":        terminal,
+        "window: super+button1":  movemouse,                 # drag to move
+        "window: super+button2":  togglefloating,
+        "window: super+button3":  resizemouse,               # drag to resize
+        "tags: button1":          view,
+        "tags: button3":          toggleview,
+        "tags: super+button1":    tag,
+        "tags: super+button3":    toggletag,
+    }
+
+
+# ============================================================================
 #  Status
 #  status() returns the text on the right of the bar.
 # ============================================================================
@@ -388,6 +419,14 @@ def layouts():
 #  Watchers
 #  Loops that send a notification when something happens.
 # ============================================================================
+
+def start_services():
+    """Started by autostart() in pref.py: the polkit agent (it asks for your
+    password for admin tasks) and the watchers below."""
+    launch(["/usr/lib/polkit-gnome/polkit-gnome-authentication-agent-1"])
+    in_background(battery_watch)
+    in_background(updates_watch)
+
 
 power_supply = "/sys/class/power_supply"
 

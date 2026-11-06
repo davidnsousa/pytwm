@@ -36,7 +36,7 @@ Keys are set in `keys()` in `pref.py`, so this document names functions, not key
 
 ## Editing pref.py
 
-`pref.py` is plain Python. Its sections: Appearance, Programs, Keys, Tags and rules, Layouts, Autostart. The status bar, the menus and `layouts()` are in `parts.py`.
+`pref.py` is plain Python. Its sections: Appearance, Programs, Keys, Tags and rules, Layouts, Autostart. The status bar, the menus, `layouts()`, the mouse buttons and the settings that rarely change (`snap`, `resizehints`, `session_display`, `autoreload`, ...) are in `parts.py`. Every setting in this document can be set in `pref.py`, whichever file it is in now.
 
 `parts.py` is loaded first, into the same namespace: `pref.py` can use everything in it and replace any of it by defining something with the same name. To change the status or the system menu, copy `status()` or `system_menu()` into `pref.py` and edit it there. `setup.sh` updates `parts.py`, so changes made in it directly are lost.
 
@@ -242,11 +242,14 @@ Modifiers: `super`, `shift`, `ctrl`, `alt`. Key names are X key names; run `xev 
 
 ### Mouse buttons
 
+`buttons()` is in `parts.py`; to change it, copy it into `pref.py`:
+
 ```python
-buttons = {
-    "window: super+button1":  movemouse,
-    "tags: button1":          view,
-}
+def buttons():
+    return {
+        "window: super+button1":  movemouse,
+        "tags: button1":          view,
+    }
 ```
 
 Places: `tags`, `layout`, `title`, `status`, `window`, `desktop`. Buttons: `button1` left, `button2` middle, `button3` right. On `tags`, a function without a value gets the clicked tag.
@@ -284,7 +287,7 @@ Tiled windows are told they are maximized, so apps that draw their own title bar
 
 ## Autostart
 
-`autostart()` runs once at login, on `session_display` only (not in Xephyr, not on reload). By default it starts the polkit agent, a terminal, the watchers and the VPN, and once the VPN is on, `cloud_services`.
+`autostart()` runs once at login, on `session_display` only (not in Xephyr, not on reload). By default it calls `start_services()` (in `parts.py`: the polkit agent and the watchers), then starts a terminal and the VPN, and once the VPN is on, `cloud_services`.
 
 ## Status
 
@@ -315,7 +318,7 @@ System menu → Printers & scanners shows only when CUPS is installed (`setup.sh
 
 ## Watchers
 
-Loops in `parts.py`, started from `autostart()`:
+Loops in `parts.py`, started by `start_services()` from `autostart()`:
 
 - `battery_watch()`: notifies when the charger is plugged in or out, and warns when the battery is at or below `battery_low` percent.
 - `updates_watch()`: looks for package updates and a newer pytwm every hour, for the status.

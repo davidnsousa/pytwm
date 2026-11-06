@@ -41,7 +41,6 @@ colors = {
 # --- bar and windows ----------------------------------------------------------
 borderpx = 3                  # border pixel of windows
 gaps = 6                      # pixels between windows and around the screen edge; 0: none
-snap = 32                     # snap pixel (move/resize with the mouse)
 showbar = True                # False means no bar
 topbar = True                 # False means bottom bar
 bar_title = False             # True shows the focused window's title in the bar
@@ -56,8 +55,6 @@ menu_lines = 0               # 0: one horizontal line; N: vertical list of N ite
 menu_wide = False            # False: on the bar, where notifications show; True: across the screen
 menu_topbar = True           # False puts the wide menu at the bottom
 menu_prompt = "Exec:"        # prompt for the launcher; None for none
-menu_case_insensitive = True
-menu_worddelimiters = " "    # characters that separate words for Ctrl+w
 
 # --- apps (GTK) ------------------------------------------------------------------
 gtk = {
@@ -91,7 +88,6 @@ lock_colors = {
     "input":  accent,        # while typing the password
     "failed": "#CC3333",     # after a wrong password
 }
-lock_failonclear = True      # show "failed" when the input is cleared
 
 screen_off = None            # minutes idle before the screen turns off; None: never
 
@@ -162,7 +158,7 @@ def keys():   # a function, so it uses the menus as they are after this file
         "super+shift+Left":      (setmfact, -0.01),      # narrower
         "super+shift+Up":        (setcfact, +0.05),      # taller window, in its column
         "super+shift+Down":      (setcfact, -0.05),      # shorter
-        "super+shift+t":         (setlayout, 0),         # tiled      (layouts, below)
+        "super+shift+t":         (setlayout, 0),         # tiled      (layouts() in parts.py)
         "super+shift+f":         (setlayout, 1),         # floating
         "super+shift+m":         (setlayout, 2),         # monocle: one window at a time
         "super+b":               togglebar,              # show / hide the bar
@@ -179,21 +175,6 @@ def keys():   # a function, so it uses the menus as they are after this file
 
 # tag_keys+1..9 show tags, +shift moves the window, +ctrl / +ctrl+shift add a tag
 tag_keys = "super"
-
-# Mouse buttons: "place: keys+button" (places: tags, layout, title, status, window, desktop)
-buttons = {
-    "layout: button1":        setlayout,                 # back to the last layout
-    "layout: button3":        (setlayout, 2),
-    "title: button2":         zoom,
-    "status: button2":        terminal,
-    "window: super+button1":  movemouse,                 # drag to move
-    "window: super+button2":  togglefloating,
-    "window: super+button3":  resizemouse,               # drag to resize
-    "tags: button1":          view,
-    "tags: button3":          toggleview,
-    "tags: super+button1":    tag,
-    "tags: super+button3":    toggletag,
-}
 
 
 # ============================================================================
@@ -218,33 +199,21 @@ rules = {
 
 mfact = 0.55          # factor of master area size [0.05..0.95]
 nmaster = 1           # number of clients in master area
-resizehints = True    # True means respect size hints in tiled resizals
-lockfullscreen = True # True will force focus on the fullscreen window
 
 
 # ============================================================================
 #  Autostart
-#  Programs started once at login (only on session_display).
+#  Programs started once at login (only on session_display, in parts.py).
 # ============================================================================
 
-session_display = ":0"        # the display your session runs on (see: echo $DISPLAY)
 battery_low = 10              # percent: battery_watch warns at or below this, unplugged
 
 def autostart():
-    launch(["/usr/lib/polkit-gnome/polkit-gnome-authentication-agent-1"])   # asks for your password for admin tasks
+    start_services()             # polkit agent and the watchers, in parts.py
     launch(terminal)
-    in_background(battery_watch)
-    in_background(updates_watch)
 
     wait_for_network()           # the apps below need it
     launch(vpn_connect)
     wait_for_vpn()               # and these need the VPN
     for cmd in cloud_services:
         launch(cmd)
-
-
-# ============================================================================
-#  pytwm
-# ============================================================================
-
-autoreload = True     # restart in place when pytwm.py, this file or parts.py is saved
