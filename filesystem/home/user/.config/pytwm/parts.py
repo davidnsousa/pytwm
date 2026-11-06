@@ -155,6 +155,24 @@ def vpn_status():
     return part("vpn", " ".join(words))
 
 
+def uptime_status():
+    """How long the computer has been on: "5h 07m"."""
+    with open("/proc/uptime") as f:
+        minutes = int(float(f.read().split()[0])) // 60
+    return part("uptime", "%dh %02dm" % divmod(minutes, 60))
+
+
+def system_updates_status():
+    """The number of package updates; nothing when there are none."""
+    n = len(_updates["packages"])
+    return part("updates", str(n)) if n else ""
+
+
+def pytwm_updates_status():
+    """"pytwm" when GitHub has a newer version; nothing otherwise."""
+    return part("pytwm_updates", "pytwm") if _updates["pytwm"] else ""
+
+
 def notifications_status():
     return part("notifications", on=not notifications_paused())
 
@@ -337,30 +355,64 @@ def battery_low_watch(bat):
         time.sleep(60)
 
 
-def updates_check():
-    """Once the network is up, says whether there are package updates."""
-    wait_for_network()
-    if output([*package_manager, "-Qu"]).strip():
-        notify("Updates available!")
+_updates = {"packages": [], "pytwm": False}
+
+def updates_watch():
+    """Once the network is up, and then every hour, looks for package updates
+    and a newer pytwm on GitHub; system_updates_status() and
+    pytwm_updates_status() show them. In between, every minute, it drops what
+    has been installed since, so the icons go away soon after updating."""
+    checked = None
+    latest = None
+    while True:
+        if checked is None or time.monotonic() - checked >= 3600:
+            wait_for_network()
+            _updates["packages"] = package_updates()
+            latest = pytwm_latest() or latest
+            checked = time.monotonic()
+        else:
+            _updates["packages"] = still_outdated(_updates["packages"])
+        installed = pytwm_installed()
+        _updates["pytwm"] = bool(latest and installed and latest > installed)
+        time.sleep(60)
 
 
-def pytwm_updates_check():
-    """Once the network is up, says whether pytwm has a newer commit on GitHub
-    than the one setup.sh installed."""
+def package_updates():
+    """[(name, new version)] for the packages with updates: checkupdates for the
+    repositories (it syncs a temporary copy of the package lists, not the
+    system's) and package_manager -Qua for the AUR."""
+    lines = (output(["checkupdates"], 120) + output([*package_manager, "-Qua"], 120)).splitlines()
+    return [(w[0], w[3]) for w in (line.split() for line in lines) if len(w) >= 4 and w[2] == "->"]
+
+
+def still_outdated(packages):
+    """The packages whose installed version is not yet the new one."""
+    if not packages:
+        return []
+    installed = dict(line.split()[:2] for line in
+                     output(["pacman", "-Q", *[name for name, _ in packages]]).splitlines())
+    return [(name, new) for name, new in packages if name in installed and installed[name] != new]
+
+
+def pytwm_installed():
+    """The date of the pytwm commit setup.sh installed; None if not installed
+    by setup.sh from a git clone."""
     from datetime import datetime
     try:
         with open(os.path.expanduser("~/.local/state/pytwm/installed")) as f:
-            installed = datetime.fromisoformat(f.read().strip())
-    except (OSError, ValueError):       # not installed by setup.sh from a git clone
-        return
-    wait_for_network()
+            return datetime.fromisoformat(f.read().strip())
+    except (OSError, ValueError):
+        return None
+
+
+def pytwm_latest():
+    """The date of the newest pytwm commit on GitHub; None if GitHub can't be asked."""
+    from datetime import datetime
     reply = output(["curl", "-sf", "https://api.github.com/repos/davidnsousa/pytwm/commits/main"], 15)
     try:
-        latest = datetime.fromisoformat(json.loads(reply)["commit"]["committer"]["date"])
+        return datetime.fromisoformat(json.loads(reply)["commit"]["committer"]["date"])
     except (ValueError, KeyError, TypeError):   # no answer, or GitHub refused
-        return
-    if latest > installed:
-        notify("pytwm updates available!")
+        return None
 
 
 def wait_for_network():

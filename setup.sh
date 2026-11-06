@@ -32,7 +32,7 @@ PKGS=(
   pipewire-pulse
   dialog
   libnotify
-  pcmanfm
+  pacman-contrib
   xarchiver
   zip
   unzip
@@ -195,7 +195,7 @@ python -m venv "$venv"
 "$venv/bin/pip" install --upgrade pip
 "$venv/bin/pip" install -r "$HOME/.config/pytwm/requirements.txt"
 
-# the date of the commit installed, for pytwm_updates_check() (not saved when this
+# the date of the commit installed, for updates_watch() (not saved when this
 # copy of the repository is not a git clone)
 
 state=$HOME/.local/state/pytwm

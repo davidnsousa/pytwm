@@ -111,7 +111,7 @@ screenshot       = ["flameshot", "gui"]
 sound_settings   = term("pulsemixer")
 display_settings = term(os.path.join(os.path.dirname(pytwm_file), "monitors.sh"))
 system_monitor   = term("btop")
-package_manager  = ["yay"]         # or ["paru"]; checks for updates
+package_manager  = ["yay"]         # or ["paru"]; counts the AUR updates
 vpn_connect      = not_set_notify("VPN")             # e.g. ["protonvpn", "connect"]
 vpn_disconnect   = not_set_notify("VPN disconnect")  # e.g. ["protonvpn", "disconnect"]
 cloud_services   = [not_set_notify("Cloud services")]  # started at login, e.g. [["mega-cmd"], ["syncthing"]]
@@ -243,8 +243,7 @@ def autostart():
     launch(["/usr/lib/polkit-gnome/polkit-gnome-authentication-agent-1"])   # asks for your password for admin tasks
     launch(terminal)
     in_background(battery_watch)
-    in_background(updates_check)
-    in_background(pytwm_updates_check)
+    in_background(updates_watch)
 
     wait_for_network()           # the apps below need it
     launch(vpn_connect)
@@ -271,19 +270,22 @@ icons = {
     "ethernet": "\U000f0200",
     "wifi": "\uf1eb",
     "vpn": "\U000f0498",        # shield
+    "uptime": "\uf017",         # clock
     "date": "\U000f00ed",       # calendar
     "notifications": "\uf0f3",  # bell
+    "updates": "\U000f03d5",    # package with an arrow up
+    "pytwm_updates": "\U000f0450",  # refresh
 }
 off_color = "#ff5555"         # a part that is off: muted, disconnected, paused
 
 def status():
-    parts = [notifications_status(), sound_status(), cpu_status(), ram_status()]
+    parts = [system_updates_status(), pytwm_updates_status(), notifications_status(), sound_status(), cpu_status(), ram_status()]
     if battery():                                   # laptops only
         parts.append(battery_status())
     if has_bluetooth():
         parts.append(every(5, bluetooth_status))
-    parts += [every(5, network_status), every(5, vpn_status), part("date", time.strftime("%H:%M, %a, %b %d "))]
-    return " " + "  ".join(parts)
+    parts += [every(5, network_status), every(5, vpn_status), every(30, uptime_status), part("date", time.strftime("%H:%M, %a, %b %d "))]
+    return " " + "  ".join(p for p in parts if p)   # the update parts are empty when there are none
 
 
 # ============================================================================

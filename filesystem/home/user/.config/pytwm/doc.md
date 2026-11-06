@@ -182,7 +182,7 @@ Each program is a command: the program and its options, e.g. `["flameshot", "gui
 | `editor` | its key, and system menu → Configuration files |
 | `browser`, `file_manager`, `screenshot` | their keys; `browser` also opens system menu → Printers & scanners → Printers |
 | `sound_settings`, `display_settings`, `system_monitor` | system menu |
-| `package_manager` | the updates check |
+| `package_manager` | AUR updates in the status |
 | `vpn_connect`, `vpn_disconnect` | autostart, and system menu → Network → Toggle VPN |
 | `cloud_services` | commands started at login once the network is up, e.g. `[["syncthing"]]` |
 
@@ -288,7 +288,7 @@ Tiled windows are told they are maximized, so apps that draw their own title bar
 
 ## Status
 
-`status()` returns the text on the right of the bar, every `status_interval` seconds. The default shows volume, CPU, memory, Bluetooth, network, VPN, notifications and time. Each part is a function in `parts.py`. The icons in front of each part are in `icons`, in `pref.py`; they come from the Nerd Font in `fonts`. A part that is off (muted, disconnected, paused) is drawn in `off_color`. `colored(text, "#rrggbb")` draws any text on the bar in another color.
+`status()` returns the text on the right of the bar, every `status_interval` seconds. The default shows updates, notifications, volume, CPU, memory, Bluetooth, network, VPN, uptime and time. Updates show only when there are some: the number of package updates, and "pytwm" when GitHub has a newer version (see [Updating](#updating)). Each part is a function in `parts.py`. The icons in front of each part are in `icons`, in `pref.py`; they come from the Nerd Font in `fonts`. A part that is off (muted, disconnected, paused) is drawn in `off_color`. `colored(text, "#rrggbb")` draws any text on the bar in another color.
 
 Without `status()`, the bar shows the root window name (set with `xsetroot -name`).
 
@@ -318,8 +318,7 @@ System menu → Printers & scanners shows only when CUPS is installed (`setup.sh
 Loops in `parts.py`, started from `autostart()`:
 
 - `battery_watch()`: notifies when the charger is plugged in or out, and warns when the battery is at or below `battery_low` percent.
-- `updates_check()`: notifies when package updates are available.
-- `pytwm_updates_check()`: notifies when there is a newer version of pytwm on GitHub (see [Updating](#updating)).
+- `updates_watch()`: looks for package updates and a newer pytwm every hour, for the status.
 
 ## Functions for pref.py
 
@@ -379,7 +378,7 @@ Press Ctrl+Shift in the Xephyr window to send your keys to it; again to release 
 
 ## Updating
 
-At login, `pytwm_updates_check()` notifies you when there is a newer version of pytwm on GitHub. To update, get it into the copy of the repository you installed from and run `setup.sh` again:
+When there is a newer version of pytwm on GitHub, the status shows "pytwm" with a refresh icon. To update, get it into the copy of the repository you installed from and run `setup.sh` again:
 
 ```sh
 cd pytwm
