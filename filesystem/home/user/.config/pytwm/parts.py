@@ -1,17 +1,53 @@
 """
-pytwm parts: the code behind the status bar, the menus and the watchers that
-pref.py uses. It is loaded just before pref.py, into the same namespace, so
-pref.py can use everything here and these functions see pref.py's settings
-(terminal, vpn_connect, battery_low, ...). A function of the same name in
-pref.py replaces the one here. Saving this file applies it, like pref.py.
+pytwm parts: the status bar, the menus, the layouts and the watchers. It is
+loaded just before pref.py, into the same namespace, so pref.py can use
+everything here and these functions see pref.py's settings (terminal,
+vpn_connect, battery_low, ...). Anything of the same name in pref.py replaces
+the one here: copy status() or system_menu() there to change it, or change
+one icon with icons["cpu"] = "...". Saving this file applies it, like pref.py.
 
 Everything pytwm offers is described in doc.md, next to this file.
 """
 
+import os
+import shutil
+import time
+
 # ============================================================================
 #  Status
-#  The parts status() in pref.py puts on the bar.
+#  status() returns the text on the right of the bar.
 # ============================================================================
+
+status_interval = 1           # seconds
+
+# Icons from the Nerd Font in fonts; https://www.nerdfonts.com/cheat-sheet has more.
+icons = {
+    "sound": "\uf028",          # volume
+    "cpu": "\uf4bc",            # chip
+    "ram": "\U000f0479",        # memory card
+    "battery": "\U000f0079",
+    "charging": "\U000f0084",   # battery with a plug
+    "bluetooth": "\uf293",
+    "ethernet": "\U000f0200",
+    "wifi": "\uf1eb",
+    "vpn": "\U000f0498",        # shield
+    "uptime": "\uf017",         # clock
+    "date": "\U000f00ed",       # calendar
+    "notifications": "\uf0f3",  # bell
+    "updates": "\U000f03d5",    # package with an arrow up
+    "pytwm_updates": "\U000f0450",  # refresh
+}
+off_color = "#ff5555"         # a part that is off: muted, disconnected, paused
+
+def status():
+    parts = [system_updates_status(), pytwm_updates_status(), notifications_status(), sound_status(), cpu_status(), ram_status()]
+    if battery():                                   # laptops only
+        parts.append(battery_status())
+    if has_bluetooth():
+        parts.append(every(5, bluetooth_status))
+    parts += [every(5, network_status), every(5, vpn_status), every(30, uptime_status), part("date", time.strftime("%H:%M, %a, %b %d "))]
+    return " " + "  ".join(p for p in parts if p)   # the update parts are empty when there are none
+
 
 def plain(cmd, timeout=5):
     """output(), with the program's messages untranslated (English), so they
@@ -179,8 +215,46 @@ def notifications_status():
 
 # ============================================================================
 #  Menus
-#  The submenus of the system menu (system_menu in pref.py).
+#  The system menu and its submenus.
 # ============================================================================
+
+HOME = os.path.expanduser("~")
+apps_installer = os.path.join(os.path.dirname(pytwm_file), "install_apps.sh")
+doc_file = os.path.join(os.path.dirname(pytwm_file), "doc.md")
+
+config_files = [
+    prefs_file, parts_file,
+    HOME + "/.xinitrc", HOME + "/.bashrc",
+    HOME + "/.config/nvim/init.lua",
+    HOME + "/.config/alacritty/alacritty.toml",
+]
+
+
+def system_menu(arg):
+    choose({
+        "Toggle notifications": toggle_notifications,
+        "Network":              network_menu,
+        "Sound":                lambda: launch(sound_settings),
+        "Display":              lambda: launch(display_settings),
+        "System monitor":       lambda: launch(system_monitor),
+        "Search files":         search_menu,
+        "Printers & scanners":  printers_menu if shutil.which("lpstat") else None,   # CUPS installed
+        "Configuration files":  lambda: launch(term(*editor, *config_files)),
+        "Apps":                 lambda: launch(term(apps_installer)),
+        "Shortcuts":            keys_menu,                # the keys and buttons set now
+        "Help":                 lambda: launch(term("leaf", "--theme", "catppuccin-mocha", doc_file)),
+        "Exit":                 exit_menu,
+    }, prompt="System:")
+
+
+def exit_menu():
+    choose({
+        "Lock":     lambda: lock(None),
+        "Log out":  lambda: wm(quit),         # pytwm ends, so X ends and you're logged out
+        "Reboot":   lambda: launch(["reboot"]),
+        "Shutdown": lambda: launch(["shutdown", "now"]),
+    }, prompt="Exit:")
+
 
 def toggle_notifications():
     if notifications_paused():
@@ -293,6 +367,21 @@ def search_menu():
     chosen = menu(files, prompt="Search ~:")
     if chosen and os.path.exists(os.path.join(HOME, chosen)):
         launch(["xdg-open", os.path.join(HOME, chosen)])
+
+
+# ============================================================================
+#  Layouts
+#  The layouts as (symbol, function); mfact and nmaster are in pref.py.
+# ============================================================================
+
+def layouts():
+    """Index 0 is the default. A layout of None means floating."""
+    return [
+        # symbol  arrange function
+        ("[]=",   tile),
+        ("><>",   None),
+        ("[M]",   monocle),
+    ]
 
 
 # ============================================================================

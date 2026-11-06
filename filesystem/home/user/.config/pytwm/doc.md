@@ -5,7 +5,7 @@ pytwm is a tiling window manager for X11, written in Python, with a program laun
 | File | What it is |
 |---|---|
 | `~/.config/pytwm/pref.py` | your settings |
-| `~/.config/pytwm/parts.py` | the code behind the status bar, submenus and watchers |
+| `~/.config/pytwm/parts.py` | the status bar, menus, layouts and watchers |
 | `~/.config/pytwm/pytwm.py` | the window manager |
 | `~/.config/pytwm/doc.md` | this document (system menu → Help) |
 | `~/.config/pytwm/install_apps.sh` | optional apps to install (system menu → Apps) |
@@ -36,9 +36,9 @@ Keys are set in `keys()` in `pref.py`, so this document names functions, not key
 
 ## Editing pref.py
 
-`pref.py` is plain Python. Its sections: Appearance, Programs, Keys, Tags and rules, Layouts, Autostart, Status, Menus.
+`pref.py` is plain Python. Its sections: Appearance, Programs, Keys, Tags and rules, Layouts, Autostart. The status bar, the menus and `layouts()` are in `parts.py`.
 
-`parts.py` is loaded first, into the same namespace: `pref.py` can use its functions and replace them by defining one with the same name.
+`parts.py` is loaded first, into the same namespace: `pref.py` can use everything in it and replace any of it by defining something with the same name. To change the status or the system menu, copy `status()` or `system_menu()` into `pref.py` and edit it there. `setup.sh` updates `parts.py`, so changes made in it directly are lost.
 
 pytwm's functions can be used in `pref.py` without an import. If a setting has the same name as one of them, the bar tells you to rename it.
 
@@ -288,13 +288,13 @@ Tiled windows are told they are maximized, so apps that draw their own title bar
 
 ## Status
 
-`status()` returns the text on the right of the bar, every `status_interval` seconds. The default shows updates, notifications, volume, CPU, memory, Bluetooth, network, VPN, uptime and time. Updates show only when there are some: the number of package updates, and "pytwm" when GitHub has a newer version (see [Updating](#updating)). Each part is a function in `parts.py`. The icons in front of each part are in `icons`, in `pref.py`; they come from the Nerd Font in `fonts`. A part that is off (muted, disconnected, paused) is drawn in `off_color`. `colored(text, "#rrggbb")` draws any text on the bar in another color.
+`status()` returns the text on the right of the bar, every `status_interval` seconds. The default shows updates, notifications, volume, CPU, memory, Bluetooth, network, VPN, uptime and time. Updates show only when there are some: the number of package updates, and "pytwm" when GitHub has a newer version (see [Updating](#updating)). `status()` and each part are functions in `parts.py`. The icons in front of each part are in `icons`, also in `parts.py`; change one from `pref.py` with `icons["cpu"] = "..."`. They come from the Nerd Font in `fonts`. A part that is off (muted, disconnected, paused) is drawn in `off_color`. `colored(text, "#rrggbb")` draws any text on the bar in another color.
 
 Without `status()`, the bar shows the root window name (set with `xsetroot -name`).
 
 ## Menus
 
-The system menu is `system_menu` in `pref.py`; its submenus are in `parts.py`. Write your own with `choose()` or `menu()`:
+The system menu, `system_menu`, and its submenus are in `parts.py`. Write your own with `choose()` or `menu()`:
 
 ```python
 def power_menu(arg):

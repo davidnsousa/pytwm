@@ -1,7 +1,7 @@
 """
-pytwm preferences: appearance, programs, keys, rules, layouts, autostart,
-what the status bar shows and the system menu. The code behind the status
-parts, the submenus and the watchers is in parts.py, next to this file.
+pytwm preferences: appearance, programs, keys, rules, layouts and autostart.
+The status bar, the menus and the layouts are in parts.py, next to this file;
+to change one, copy it here and edit it.
 
   ┌──────────────────────────────────────────────────────────────────────────┐
   │ Edit this file and SAVE it. The running pytwm restarts in place within   │
@@ -15,7 +15,6 @@ Everything you can use here, with examples, is in doc.md next to this file
 """
 
 import os
-import time
 
 # ============================================================================
 #  Appearance
@@ -122,7 +121,7 @@ cloud_services   = [not_set_notify("Cloud services")]  # started at login, e.g. 
 #  "keys": what to do (a command, a function, or (function, value)).
 # ============================================================================
 
-def keys():   # a function, so it can use the menus defined further down
+def keys():   # a function, so it uses the menus as they are after this file
     return {
         # --- your programs and menus --------------------------------------
         "super+t":               terminal,
@@ -213,22 +212,14 @@ rules = {
 
 # ============================================================================
 #  Layouts
-#  How windows are arranged; each tag remembers its own.
+#  How windows are arranged; each tag remembers its own. The layouts
+#  themselves, layouts(), are in parts.py.
 # ============================================================================
 
 mfact = 0.55          # factor of master area size [0.05..0.95]
 nmaster = 1           # number of clients in master area
 resizehints = True    # True means respect size hints in tiled resizals
 lockfullscreen = True # True will force focus on the fullscreen window
-
-def layouts():
-    """Index 0 is the default. A layout of None means floating."""
-    return [
-        # symbol  arrange function
-        ("[]=",   tile),
-        ("><>",   None),
-        ("[M]",   monocle),
-    ]
 
 
 # ============================================================================
@@ -250,86 +241,6 @@ def autostart():
     wait_for_vpn()               # and these need the VPN
     for cmd in cloud_services:
         launch(cmd)
-
-
-# ============================================================================
-#  Status
-#  status() returns the text on the right of the bar.
-# ============================================================================
-
-status_interval = 1           # seconds
-
-# Icons from the Nerd Font in fonts; https://www.nerdfonts.com/cheat-sheet has more.
-icons = {
-    "sound": "\uf028",          # volume
-    "cpu": "\uf4bc",            # chip
-    "ram": "\U000f0479",        # memory card
-    "battery": "\U000f0079",
-    "charging": "\U000f0084",   # battery with a plug
-    "bluetooth": "\uf293",
-    "ethernet": "\U000f0200",
-    "wifi": "\uf1eb",
-    "vpn": "\U000f0498",        # shield
-    "uptime": "\uf017",         # clock
-    "date": "\U000f00ed",       # calendar
-    "notifications": "\uf0f3",  # bell
-    "updates": "\U000f03d5",    # package with an arrow up
-    "pytwm_updates": "\U000f0450",  # refresh
-}
-off_color = "#ff5555"         # a part that is off: muted, disconnected, paused
-
-def status():
-    parts = [system_updates_status(), pytwm_updates_status(), notifications_status(), sound_status(), cpu_status(), ram_status()]
-    if battery():                                   # laptops only
-        parts.append(battery_status())
-    if has_bluetooth():
-        parts.append(every(5, bluetooth_status))
-    parts += [every(5, network_status), every(5, vpn_status), every(30, uptime_status), part("date", time.strftime("%H:%M, %a, %b %d "))]
-    return " " + "  ".join(p for p in parts if p)   # the update parts are empty when there are none
-
-
-# ============================================================================
-#  Menus
-#  The system menu, system_menu (its submenus are in parts.py).
-# ============================================================================
-
-HOME = os.path.expanduser("~")
-apps_installer = os.path.join(os.path.dirname(pytwm_file), "install_apps.sh")
-doc_file = os.path.join(os.path.dirname(pytwm_file), "doc.md")
-
-config_files = [
-    prefs_file, parts_file,
-    HOME + "/.xinitrc", HOME + "/.bashrc",
-    HOME + "/.config/nvim/init.lua",
-    HOME + "/.config/alacritty/alacritty.toml",
-]
-
-
-def system_menu(arg):
-    """The system menu"""
-    choose({
-        "Toggle notifications": toggle_notifications,
-        "Network":              network_menu,
-        "Sound":                lambda: launch(sound_settings),
-        "Display":              lambda: launch(display_settings),
-        "System monitor":       lambda: launch(system_monitor),
-        "Search files":         search_menu,
-        "Printers & scanners":  printers_menu if shutil.which("lpstat") else None,   # CUPS installed
-        "Configuration files":  lambda: launch(term(*editor, *config_files)),
-        "Apps":                 lambda: launch(term(apps_installer)),
-        "Shortcuts":            keys_menu,                # the keys and buttons set now
-        "Help":                 lambda: launch(term("leaf", "--theme", "catppuccin-mocha", doc_file)),
-        "Exit":                 exit_menu,
-    }, prompt="System:")
-
-
-def exit_menu():
-    choose({
-        "Lock":     lambda: lock(None),
-        "Log out":  lambda: wm(quit),         # pytwm ends, so X ends and you're logged out
-        "Reboot":   lambda: launch(["reboot"]),
-        "Shutdown": lambda: launch(["shutdown", "now"]),
-    }, prompt="Exit:")
 
 
 # ============================================================================
