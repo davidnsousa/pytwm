@@ -186,6 +186,8 @@ Each program is a command: the program and its options, e.g. `["flameshot", "gui
 | `vpn_connect`, `vpn_disconnect` | autostart, and system menu → Network → Toggle VPN |
 | `cloud_services` | commands started at login once the network is up, e.g. `[["syncthing"]]` |
 
+`browser = default_browser` opens the system's default browser.
+
 `not_set_notify("Web browser")` marks a program as not set: using it shows a notification.
 
 ## Keys
@@ -374,7 +376,7 @@ Press Ctrl+Shift in the Xephyr window to send your keys to it; again to release 
 
 - `~/.xinitrc` starts pytwm. Errors go to `~/.local/state/pytwm/pytwm.log` (previous session: `pytwm.log.old`).
 - `pytwm.py keys` prints your keys in a terminal; `--watch` reprints them when you save.
-- Images open in nsxiv. Removable drives are mounted by udiskie.
+- Images open in nsxiv, web pages in Helium. Removable drives are mounted by udiskie.
 - Saved passwords are kept in gnome-keyring, unlocked at login. Electron apps use it through `~/.config/electron-flags.conf`.
 - Bash gets its prompt, history search (Up/Down), Alt+Left/Right and `calc` from `~/.config/pytwm/bashrc_extras`. `~/.bashrc` stays yours; `setup.sh` only adds the line that reads that file.
 - After adding a Python package: `~/.local/share/pytwm/venv/bin/pip freeze > ~/.config/pytwm/requirements.txt`.

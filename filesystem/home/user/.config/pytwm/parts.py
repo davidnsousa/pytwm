@@ -27,6 +27,9 @@ lock_failonclear = True      # show "failed" when the input is cleared
 session_display = ":0"        # the display your session runs on (see: echo $DISPLAY)
 autoreload = True     # restart in place when pytwm.py, pref.py or parts.py is saved
 
+# The browser set as the system's default, asked each time it starts.
+default_browser = ["sh", "-c", 'gtk-launch "$(xdg-settings get default-web-browser)" "$@"', "sh"]
+
 # Mouse buttons: "place: keys+button" (places: tags, layout, title, status, window, desktop)
 def buttons():   # a function, so it sees terminal and the rest of pref.py
     return {

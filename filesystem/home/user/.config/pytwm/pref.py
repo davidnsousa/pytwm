@@ -100,7 +100,7 @@ screen_off = None            # minutes idle before the screen turns off; None: n
 
 terminal         = ["alacritty"]   # term("prog") runs prog in it
 editor           = ["nvim"]
-browser          = not_set_notify("Web browser")     # e.g. ["firefox"]
+browser          = default_browser   # or one, e.g. ["firefox"]
 file_manager     = ["qfm"]
 screenshot       = ["flameshot", "gui"]
 sound_settings   = term("pulsemixer")

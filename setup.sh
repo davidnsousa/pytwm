@@ -40,6 +40,7 @@ PKGS=(
   nsxiv
   neovim
   leaf-markdown-viewer-bin
+  helium-browser-bin
   picom
   ttf-jetbrains-mono-nerd
   ufw
@@ -136,7 +137,8 @@ sudo cp filesystem/etc/X11/xorg.conf.d/30-touchpad.conf /etc/X11/xorg.conf.d/
 grep -q pytwm/bashrc_extras "$HOME/.bashrc" 2>/dev/null ||
   echo '[ -f ~/.config/pytwm/bashrc_extras ] && . ~/.config/pytwm/bashrc_extras' >> "$HOME/.bashrc"
 
-# DEFAULT APPS: images open in nsxiv, unless you already chose an image viewer
+# DEFAULT APPS: images open in nsxiv and web pages in Helium, unless you already
+# chose others
 
 has_default() {   # has_default TYPE: ~/.config/mimeapps.list sets a default app for it
     awk -v t="$1=" '/^\[/ { s = ($0 == "[Default Applications]") } s && index($0, t) == 1 { f = 1 }
@@ -144,6 +146,7 @@ has_default() {   # has_default TYPE: ~/.config/mimeapps.list sets a default app
 }
 has_default image/png || xdg-mime default nsxiv.desktop image/png image/jpeg image/jpg image/gif \
   image/webp image/bmp image/tiff image/avif image/jxl image/heic image/heif image/svg+xml
+has_default x-scheme-handler/https || xdg-settings set default-web-browser helium.desktop
 
 # folders open in qfm, which also answers other apps' "Show in folder" (qfm's own
 # setting "Open folders with qfm", which can turn it off again)
