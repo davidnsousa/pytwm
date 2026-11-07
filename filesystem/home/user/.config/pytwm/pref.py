@@ -1,7 +1,8 @@
 """
 pytwm preferences: appearance, programs, keys, rules, layouts and autostart.
-The status bar, the menus and the layouts are in parts.py, next to this file;
-to change one, copy it here and edit it.
+The status bar, the menus, the layouts, the window keys and the settings that
+rarely change are in parts.py, next to this file; to change one, copy it here
+and edit it.
 
   ┌──────────────────────────────────────────────────────────────────────────┐
   │ Edit this file and SAVE it. The running pytwm restarts in place within   │
@@ -18,7 +19,7 @@ import os
 
 # ============================================================================
 #  Appearance
-#  Colors and fonts, the bar, menus, GTK apps, notifications, screen lock.
+#  Colors and fonts, wallpaper, GTK apps, the screen.
 # ============================================================================
 
 fonts = ["monospace:size=9", "JetBrainsMono Nerd Font Propo:size=9"]  # first font is the main one, the rest are fallbacks (the Nerd Font has the bar's icons)
@@ -31,30 +32,9 @@ text        = "#bbbbbb"       # bar and menu text
 text_active = "#eeeeee"       # text on the selected tag, focused title, selected menu item
 accent      = "#005577"       # selected tag, focused title and border, lock while typing
 
-colors = {
-    #          fg           bg          border
-    "norm":   (text,        background, border),      # unselected tags, menu items, borders
-    "sel":    (text_active, accent,     accent),      # selected tag and item, focused window
-    "urgent": (text_active, "#990000",  "#990000"),   # critical notifications
-}
-
-# --- bar and windows ----------------------------------------------------------
-borderpx = 3                  # border pixel of windows
-gaps = 6                      # pixels between windows and around the screen edge; 0: none
-showbar = True                # False means no bar
-topbar = True                 # False means bottom bar
-bar_title = False             # True shows the focused window's title in the bar
-hide_vacant_tags = True       # show only tags with windows, and the one you're on
-
 # --- wallpaper ---------------------------------------------------------------------
 wallpaper = "#000000"         # a color, or a picture, e.g. "~/Pictures/mountains.jpg"
 wallpaper_mode = "fill"       # fill (covers the screen), fit (all of it), stretch, center or tile
-
-# --- menus (the launcher and your own) -----------------------------------------
-menu_lines = 0               # 0: one horizontal line; N: vertical list of N items
-menu_wide = False            # False: on the bar, where notifications show; True: across the screen
-menu_topbar = True           # False puts the wide menu at the bottom
-menu_prompt = "Exec:"        # prompt for the launcher; None for none
 
 # --- apps (GTK) ------------------------------------------------------------------
 gtk = {
@@ -66,29 +46,7 @@ gtk = {
     "accent": True,                  # apps and folder icons take the accent color
 }
 
-# --- compositor (picom) -----------------------------------------------------------
-# Smooth drawing (vsync) and fades. None turns it off.
-compositor = {
-    "vsync": True,                   # no tearing when scrolling or watching video
-    "fade": 0.1,                     # seconds windows take to fade in and out; 0 = no fading
-    "backend": "xrender",            # "xrender" (CPU) or "glx" (graphics card)
-    "blur": 0,                       # blur behind see-through windows, 1-20 (needs "glx"); 0 = none
-}
-
-# --- notifications ---------------------------------------------------------------
-# Shown on the bar, where the window title goes: low ones in the "norm" colors,
-# normal ones in "sel", critical ones in "urgent". A click takes one away.
-
-notification_timeout = 10    # seconds on the bar; critical ones stay until clicked
-
-# --- screen lock (lock) -----------------------------------------------------------
-
-lock_colors = {
-    "init":   "black",       # after locking
-    "input":  accent,        # while typing the password
-    "failed": "#CC3333",     # after a wrong password
-}
-
+# --- screen ---------------------------------------------------------------------
 screen_off = None            # minutes idle before the screen turns off; None: never
 
 
@@ -115,6 +73,8 @@ cloud_services   = [not_set_notify("Cloud services")]  # started at login, e.g. 
 # ============================================================================
 #  Keys
 #  "keys": what to do (a command, a function, or (function, value)).
+#  The keys for windows, layouts, tags and monitors are window_keys() in
+#  parts.py; a key here replaces one there, and None takes it away.
 # ============================================================================
 
 def keys():   # a function, so it uses the menus as they are after this file
@@ -139,42 +99,7 @@ def keys():   # a function, so it uses the menus as they are after this file
         "XF86MonBrightnessUp":   (brightness, +5),       # laptop screen or monitor
         "XF86MonBrightnessDown": (brightness, -5),
         "XF86Display":           display_settings,
-
-        # --- windows -------------------------------------------------------
-        "super+Right":           (focusdir, "right"),    # focus the window to the right
-        "super+Left":            (focusdir, "left"),
-        "super+Down":            (focusdir, "down"),
-        "super+Up":              (focusdir, "up"),
-        "super+ctrl+Right":      (swapdir, "right"),     # move the window right (swap)
-        "super+ctrl+Left":       (swapdir, "left"),
-        "super+ctrl+Down":       (swapdir, "down"),
-        "super+ctrl+Up":         (swapdir, "up"),
-        "super+Return":          zoom,                   # swap with the master window
-        "super+q":               killclient,             # close the window
-        "super+shift+space":     togglefloating,         # float / tile the window
-        "super+shift+i":         (incnmaster, +1),       # one more window in the master area
-        "super+shift+d":         (incnmaster, -1),       # one less
-        "super+shift+Right":     (setmfact, +0.01),      # wider master area
-        "super+shift+Left":      (setmfact, -0.01),      # narrower
-        "super+shift+Up":        (setcfact, +0.05),      # taller window, in its column
-        "super+shift+Down":      (setcfact, -0.05),      # shorter
-        "super+shift+t":         (setlayout, 0),         # tiled      (layouts() in parts.py)
-        "super+shift+f":         (setlayout, 1),         # floating
-        "super+shift+m":         (setlayout, 2),         # monocle: one window at a time
-        "super+b":               togglebar,              # show / hide the bar
-
-        # --- tags and monitors ---------------------------------------------
-        "super+Tab":             view,                   # back to the tags shown before
-        "super+0":               (view, ALLTAGS),        # show all tags
-        "super+shift+0":         (tag, ALLTAGS),         # put the window on all tags
-        "super+comma":           (focusmon, -1),         # focus the previous monitor
-        "super+period":          (focusmon, +1),
-        "super+shift+comma":     (tagmon, -1),           # move the window to the previous monitor
-        "super+shift+period":    (tagmon, +1),
     }
-
-# tag_keys+1..9 show tags, +shift moves the window, +ctrl / +ctrl+shift add a tag
-tag_keys = "super"
 
 
 # ============================================================================
@@ -192,21 +117,9 @@ rules = {
 
 
 # ============================================================================
-#  Layouts
-#  How windows are arranged; each tag remembers its own. The layouts
-#  themselves, layouts(), are in parts.py.
-# ============================================================================
-
-mfact = 0.55          # factor of master area size [0.05..0.95]
-nmaster = 1           # number of clients in master area
-
-
-# ============================================================================
 #  Autostart
 #  Programs started once at login (only on session_display, in parts.py).
 # ============================================================================
-
-battery_low = 10              # percent: battery_watch warns at or below this, unplugged
 
 def autostart():
     start_services()             # polkit agent and the watchers, in parts.py

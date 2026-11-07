@@ -26,9 +26,87 @@ menu_worddelimiters = " "    # characters that separate words for Ctrl+w
 lock_failonclear = True      # show "failed" when the input is cleared
 session_display = ":0"        # the display your session runs on (see: echo $DISPLAY)
 autoreload = True     # restart in place when pytwm.py, pref.py or parts.py is saved
+menu_topbar = True           # False puts the wide menu at the bottom
+menu_prompt = "Exec:"        # prompt for the launcher; None for none
+notification_timeout = 10    # seconds on the bar; critical ones stay until clicked
+battery_low = 10             # percent: battery_watch warns at or below this, unplugged
+mfact = 0.55                 # master area's share of the screen [0.05..0.95]
+nmaster = 1                  # number of windows in the master area
+
+borderpx = 3                 # border of windows, in pixels
+gaps = 6                     # pixels between windows and around the screen edge; 0: none
+showbar = True               # False means no bar
+topbar = True                # False means bottom bar
+bar_title = False            # True shows the focused window's title in the bar
+hide_vacant_tags = True      # show only tags with windows, and the one you're on
+menu_lines = 0               # 0: one horizontal line; N: vertical list of N items
+menu_wide = False            # False: on the bar, where notifications show; True: across the screen
+
+# Compositor (picom): smooth drawing (vsync) and fades. None turns it off.
+compositor = {
+    "vsync": True,                   # no tearing when scrolling or watching video
+    "fade": 0.1,                     # seconds windows take to fade in and out; 0 = no fading
+    "backend": "glx",                # "glx" (graphics card) or "xrender" (CPU, e.g. in a virtual machine)
+    "blur": 5,                       # blur behind see-through windows, 1-20 (needs "glx"); 0 = none
+}
 
 # The browser set as the system's default, asked each time it starts.
 default_browser = ["sh", "-c", 'gtk-launch "$(xdg-settings get default-web-browser)" "$@"', "sh"]
+
+# Functions, so they take the colors set in pref.py.
+def colors():
+    return {
+        #          fg           bg          border
+        "norm":   (text,        background, border),      # unselected tags, menu items, borders
+        "sel":    (text_active, accent,     accent),      # selected tag and item, focused window
+        "urgent": (text_active, "#990000",  "#990000"),   # critical notifications
+    }
+
+def lock_colors():
+    return {
+        "init":   "black",       # after locking
+        "input":  accent,        # while typing the password
+        "failed": "#CC3333",     # after a wrong password
+    }
+
+# Keys for windows, layouts, tags and monitors; keys() in pref.py adds to these.
+def window_keys():
+    return {
+        # --- windows -------------------------------------------------------
+        "super+Right":           (focusdir, "right"),    # focus the window to the right
+        "super+Left":            (focusdir, "left"),
+        "super+Down":            (focusdir, "down"),
+        "super+Up":              (focusdir, "up"),
+        "super+ctrl+Right":      (swapdir, "right"),     # move the window right (swap)
+        "super+ctrl+Left":       (swapdir, "left"),
+        "super+ctrl+Down":       (swapdir, "down"),
+        "super+ctrl+Up":         (swapdir, "up"),
+        "super+Return":          zoom,                   # swap with the master window
+        "super+q":               killclient,             # close the window
+        "super+shift+space":     togglefloating,         # float / tile the window
+        "super+shift+i":         (incnmaster, +1),       # one more window in the master area
+        "super+shift+d":         (incnmaster, -1),       # one less
+        "super+shift+Right":     (setmfact, +0.01),      # wider master area
+        "super+shift+Left":      (setmfact, -0.01),      # narrower
+        "super+shift+Up":        (setcfact, +0.05),      # taller window, in its column
+        "super+shift+Down":      (setcfact, -0.05),      # shorter
+        "super+shift+t":         (setlayout, 0),         # tiled      (layouts() below)
+        "super+shift+f":         (setlayout, 1),         # floating
+        "super+shift+m":         (setlayout, 2),         # monocle: one window at a time
+        "super+b":               togglebar,              # show / hide the bar
+
+        # --- tags and monitors ---------------------------------------------
+        "super+Tab":             view,                   # back to the tags shown before
+        "super+0":               (view, ALLTAGS),        # show all tags
+        "super+shift+0":         (tag, ALLTAGS),         # put the window on all tags
+        "super+comma":           (focusmon, -1),         # focus the previous monitor
+        "super+period":          (focusmon, +1),
+        "super+shift+comma":     (tagmon, -1),           # move the window to the previous monitor
+        "super+shift+period":    (tagmon, +1),
+    }
+
+# tag_keys+1..9 show tags, +shift moves the window, +ctrl / +ctrl+shift add a tag
+tag_keys = "super"
 
 # Mouse buttons: "place: keys+button" (places: tags, layout, title, status, window, desktop)
 def buttons():   # a function, so it sees terminal and the rest of pref.py

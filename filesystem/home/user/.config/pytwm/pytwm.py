@@ -2801,6 +2801,9 @@ def load_prefs():
     if PARTSSOURCE:
         exec(compile(PARTSSOURCE, parts_file, "exec"), ns)
     exec(compile(PREFSOURCE, prefs_file, "exec"), ns)
+    for n in ("colors", "lock_colors"):     # functions in parts.py, so they use pref.py's accent
+        if callable(ns.get(n)):
+            ns[n] = ns[n]()
     missing = [n for n in PREF_NAMES if n not in ns]
     if missing:
         raise NameError("pref.py does not set: " + ", ".join(missing))
@@ -4414,7 +4417,7 @@ def picom_config(c):
     step = 1.0 if fade <= 0 else min(1.0, 0.01 / fade)      # picom fades in 10 ms steps
     blur = int(c.get("blur") or 0)                          # dual_kawase strength, 1-20
     return "\n".join([
-        'backend = "%s";' % c.get("backend", "xrender"),
+        'backend = "%s";' % c.get("backend", "glx"),
         "vsync = %s;" % ("true" if c.get("vsync", True) else "false"),
         "unredir-if-possible = true;",                      # fullscreen windows skip picom
         'blur-method = "%s";' % ("dual_kawase" if blur > 0 else "none"),
@@ -4544,10 +4547,19 @@ def action(value, where):
     raise ValueError("don't know what to do for %r: %r" % (where, value))
 
 
+def key_table():
+    """window_keys() from parts.py with keys() from pref.py on top; a key set
+    to None in keys() is left out."""
+    table = {}
+    for name in ("window_keys", "keys"):
+        t = prefns.get(name, {})
+        table.update(t() if callable(t) else t)
+    return {k: v for k, v in table.items() if v is not None}
+
+
 def read_keys():
     """keys and tag_keys from pref.py -> [(modifiers, keysym, function, argument)]"""
-    table = prefns["keys"]
-    table = table() if callable(table) else table
+    table = key_table()
     out = []
     for text, value in table.items():
         mask, name = combo(text)
@@ -4752,8 +4764,7 @@ def keys_text(color, hint=None):
         return c(plus, " + ").join(parts), len(visible)
 
     rows = {s: [] for s in KEY_SECTIONS}
-    table = prefns["keys"]
-    table = table() if callable(table) else table
+    table = key_table()
     for text, value in table.items():
         section, what = describe_binding(value)
         rows[section].append(combo_text(text) + (what,))

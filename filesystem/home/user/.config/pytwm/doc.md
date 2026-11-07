@@ -14,7 +14,7 @@ pytwm is a tiling window manager for X11, written in Python, with a program laun
 
 Saving `pref.py`, `parts.py` or `pytwm.py` restarts pytwm in place. Windows stay where they are.
 
-Keys are set in `keys()` in `pref.py`, so this document names functions, not keys. System menu → Shortcuts lists your current keys (the system menu is Super+s by default).
+Keys are set in `keys()` in `pref.py` and `window_keys()` in `parts.py`, so this document names functions, not keys. System menu → Shortcuts lists your current keys (the system menu is Super+s by default).
 
 ## Contents
 
@@ -36,7 +36,7 @@ Keys are set in `keys()` in `pref.py`, so this document names functions, not key
 
 ## Editing pref.py
 
-`pref.py` is plain Python. Its sections: Appearance, Programs, Keys, Tags and rules, Layouts, Autostart. The status bar, the menus, `layouts()`, the mouse buttons and the settings that rarely change (`snap`, `resizehints`, `session_display`, `autoreload`, ...) are in `parts.py`. Every setting in this document can be set in `pref.py`, whichever file it is in now.
+`pref.py` is plain Python. Its sections: Appearance, Programs, Keys, Tags and rules, Layouts, Autostart. The status bar, the menus, `layouts()`, the window keys, the mouse buttons and the settings that rarely change (`snap`, `resizehints`, `session_display`, `autoreload`, ...) are in `parts.py`. Every setting in this document can be set in `pref.py`, whichever file it is in now.
 
 `parts.py` is loaded first, into the same namespace: `pref.py` can use everything in it and replace any of it by defining something with the same name. To change the status or the system menu, copy `status()` or `system_menu()` into `pref.py` and edit it there. `setup.sh` updates `parts.py`, so changes made in it directly are lost.
 
@@ -55,7 +55,7 @@ System menu → Configuration files opens `pref.py`, `parts.py` and other config
 | `text` | bar and menu text |
 | `text_active` | text on the selected tag, focused title and selected menu item |
 | `accent` | selected tag, focused title and border, lock while typing |
-| `colors` | `"norm"`, `"sel"` and `"urgent"`, each `(text, background, border)` |
+| `colors` | `"norm"`, `"sel"` and `"urgent"`, each `(text, background, border)`; made from the colors above, in `parts.py` |
 | `fonts` | e.g. `["monospace:size=9"]`; the first is the main font, the rest are fallbacks |
 | `dpi` | size of text and GTK apps: `"auto"` works it out from the monitors, `96` is normal, `192` doubles it, `None` leaves it to `~/.Xresources` |
 
@@ -140,12 +140,12 @@ Old GTK 2 apps get Adwaita's GTK 2 look (package gnome-themes-extra-gtk2) when t
 compositor = {
     "vsync": True,          # no tearing
     "fade": 0.1,            # fade time in seconds; 0: none
-    "backend": "xrender",   # "xrender" (CPU) or "glx" (graphics card)
-    "blur": 0,              # blur behind see-through windows, 1-20; needs "glx"
+    "backend": "glx",       # "glx" (graphics card) or "xrender" (CPU)
+    "blur": 5,              # blur behind see-through windows, 1-20; needs "glx"
 }
 ```
 
-pytwm runs picom with these settings. `compositor = None` turns it off. Use `"xrender"` if `"glx"` doesn't work, e.g. in a virtual machine. A see-through terminal needs the compositor.
+pytwm runs picom with these settings (the default, in `parts.py`). `compositor = None` turns it off. Use `"xrender"` if `"glx"` doesn't work, e.g. in a virtual machine. A see-through terminal needs the compositor.
 
 ### Notifications
 
@@ -202,6 +202,8 @@ def keys():
         "super+Right":   (focusdir, "right"),    # call a function with a value
     }
 ```
+
+The keys for windows, layouts, tags and monitors are in `window_keys()` in `parts.py`. A key in `keys()` replaces one there, and `None` removes it: `"super+q": None`.
 
 Modifiers: `super`, `shift`, `ctrl`, `alt`. Key names are X key names; run `xev -event keyboard` to see them.
 
