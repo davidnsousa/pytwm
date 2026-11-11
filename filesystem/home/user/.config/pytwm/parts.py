@@ -331,7 +331,6 @@ def notifications_status():
 # ============================================================================
 
 HOME = os.path.expanduser("~")
-apps_installer = os.path.join(os.path.dirname(pytwm_file), "install_apps.sh")
 doc_file = os.path.join(os.path.dirname(pytwm_file), "doc.md")
 
 config_files = [
@@ -352,7 +351,6 @@ def system_menu(arg):
         "Search files":         search_menu,
         "Printers & scanners":  printers_menu if shutil.which("lpstat") else None,   # CUPS installed
         "Configuration files":  lambda: launch(term(*editor, *config_files)),
-        "Apps":                 lambda: launch(term(apps_installer)),
         "Shortcuts":            keys_menu,                # the keys and buttons set now
         "Help":                 lambda: launch(term("leaf", "--theme", "catppuccin-mocha", doc_file)),
         "Exit":                 exit_menu,

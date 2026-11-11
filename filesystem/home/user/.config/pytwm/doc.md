@@ -8,7 +8,6 @@ pytwm is a tiling window manager for X11, written in Python, with a program laun
 | `~/.config/pytwm/parts.py` | the status bar, menus, layouts and watchers |
 | `~/.config/pytwm/pytwm.py` | the window manager |
 | `~/.config/pytwm/doc.md` | this document (system menu → Help) |
-| `~/.config/pytwm/install_apps.sh` | optional apps to install (system menu → Apps) |
 | `~/.config/pytwm/monitors.sh` | monitor layout: resolution, position, on / off (system menu → Display) |
 | `~/.config/pytwm/requirements.txt` | Python packages, installed in `~/.local/share/pytwm/venv` |
 
