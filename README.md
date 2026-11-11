@@ -40,7 +40,8 @@ git pull
 bash setup.sh
 ```
 
-`setup.sh` replaces all files except `pref.py`: if yours differs, it shows the
+It asks which steps to run; to update only pytwm itself, keep just "pytwm"
+ticked. `setup.sh` replaces all files except `pref.py`: if yours differs, it shows the
 differences and asks which to keep.
 
 ## Credits and license

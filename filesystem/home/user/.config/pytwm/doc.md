@@ -392,6 +392,8 @@ git pull
 bash setup.sh
 ```
 
+It first asks which steps to run (packages, file manager, printing, pytwm, system settings, defaults), all ticked; to update only pytwm's files and Python packages, keep just "pytwm". The first run, before `dialog` is installed, runs them all.
+
 `setup.sh` replaces all files except `pref.py`: if yours differs, it offers to show the differences and asks which to keep.
 
 `setup.sh` saves the date of the commit it installed in `~/.local/state/pytwm/installed`; the check compares it with the latest commit on GitHub. Your own commits don't count as updates, pushed or not. Without that file (pytwm not installed by `setup.sh` from a git clone) there is no check.
