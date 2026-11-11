@@ -122,7 +122,7 @@ rules = {
 # ============================================================================
 
 def autostart():
-    start_services()             # polkit agent and the watchers, in parts.py
+    start_services()             # the polkit agent, in parts.py
     launch(terminal)
 
     wait_for_network()           # the apps below need it

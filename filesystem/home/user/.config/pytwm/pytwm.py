@@ -1753,6 +1753,14 @@ def child_env(**more):
     return env
 
 
+def child_args(args):
+    """args, run with SIGCHLD back to normal. pytwm ignores SIGCHLD (so the
+    apps it starts don't become zombies), and programs inherit that through
+    subprocess, which can't undo it like spawn() does; scripts that check how
+    their own commands ended then break (checkupdates: "Cannot fetch updates")."""
+    return ["/usr/bin/env", "--default-signal=CHLD", *args]
+
+
 def spawn(arg):
     """Start a command (a list of arguments) in its own session. Returns its
     process id, or None if it couldn't start."""
@@ -2926,7 +2934,7 @@ def output(cmd, timeout=5):
     if callable(cmd):                            # e.g. a not_set_notify placeholder
         cmd()
         return ""
-    args = list(cmd) if isinstance(cmd, (list, tuple)) else ["/bin/sh", "-c", cmd]
+    args = child_args(list(cmd) if isinstance(cmd, (list, tuple)) else ["/bin/sh", "-c", cmd])
     try:
         proc = subprocess.Popen(args, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL,
                                 stdin=subprocess.DEVNULL, text=True, start_new_session=True,
@@ -3016,7 +3024,7 @@ def watch(cmd, func):
     use it in a watcher started with in_background."""
     env = child_env(LC_ALL="C.UTF-8")
     while True:
-        proc = subprocess.Popen(list(cmd), stdin=subprocess.DEVNULL, stdout=subprocess.PIPE,
+        proc = subprocess.Popen(child_args(cmd), stdin=subprocess.DEVNULL, stdout=subprocess.PIPE,
                                 stderr=subprocess.DEVNULL, text=True, env=env)
         watch_procs.append(proc)
         try:
@@ -3121,7 +3129,7 @@ class Presses:
 def run_ok(cmd, timeout=10):
     """Run a command and wait; True if it worked."""
     try:
-        return subprocess.run(cmd, stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL,
+        return subprocess.run(child_args(cmd), stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL,
                               stderr=subprocess.DEVNULL, timeout=timeout, env=child_env()).returncode == 0
     except (OSError, subprocess.TimeoutExpired):
         return False
@@ -5030,6 +5038,10 @@ def main():
         if "autostart" in prefns and ondisplay(prefns.get("session_display", ":0")):
             threading.Thread(target=_background, args=(lambda arg: prefns["autostart"](), None),
                              daemon=True).start()
+    if "watchers" in prefns and ondisplay(prefns.get("session_display", ":0")):
+        # every start, a reload too: the watchers are threads, gone with the old process
+        threading.Thread(target=_background, args=(lambda arg: prefns["watchers"](), None),
+                         daemon=True).start()
     if "status" in prefns:
         threading.Thread(target=statusloop, daemon=True).start()
     notify_start()                  # the notification server

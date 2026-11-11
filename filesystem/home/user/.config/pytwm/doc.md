@@ -291,7 +291,7 @@ Tiled windows are told they are maximized, so apps that draw their own title bar
 
 ## Autostart
 
-`autostart()` runs once at login, on `session_display` only (not in Xephyr, not on reload). By default it calls `start_services()` (in `parts.py`: the polkit agent and the watchers), then starts a terminal and the VPN, and once the VPN is on, `cloud_services`.
+`autostart()` runs once at login, on `session_display` only (not in Xephyr, not on reload). By default it calls `start_services()` (in `parts.py`: the polkit agent), then starts a terminal and the VPN, and once the VPN is on, `cloud_services`.
 
 ## Status
 
@@ -322,7 +322,7 @@ System menu → Printers & scanners shows only when CUPS is installed (`setup.sh
 
 ## Watchers
 
-Loops in `parts.py`, started by `start_services()` from `autostart()`:
+Loops in `parts.py`, started by `watchers()`. pytwm calls it on `session_display` every time it starts, after a reload too, since the loops end with the process it replaces:
 
 - `battery_watch()`: notifies when the charger is plugged in or out, and warns when the battery is at or below `battery_low` percent.
 - `updates_watch()`: looks for package updates and a newer pytwm every hour, for the status.

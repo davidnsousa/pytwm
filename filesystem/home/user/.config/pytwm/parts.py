@@ -503,8 +503,13 @@ def layouts():
 
 def start_services():
     """Started by autostart() in pref.py: the polkit agent (it asks for your
-    password for admin tasks) and the watchers below."""
+    password for admin tasks). It keeps running when pytwm reloads."""
     launch(["/usr/lib/polkit-gnome/polkit-gnome-authentication-agent-1"])
+
+
+def watchers():
+    """Started by pytwm on session_display every time it starts, a reload
+    too: they are threads of pytwm, so they end when it replaces itself."""
     in_background(battery_watch)
     in_background(updates_watch)
 
