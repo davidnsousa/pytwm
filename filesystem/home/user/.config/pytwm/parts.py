@@ -572,11 +572,15 @@ def updates_watch():
     pytwm_updates_status() show them. In between, every minute, it drops what
     has been installed since, so the icons go away soon after updating."""
     checked = None
+    every = 3600
     latest = None
     while True:
-        if checked is None or time.monotonic() - checked >= 3600:
+        if checked is None or time.monotonic() - checked >= every:
             wait_for_network()
-            _updates["packages"] = package_updates()
+            packages = package_updates()
+            if packages is not None:
+                _updates["packages"] = packages
+            every = 3600 if packages is not None else 300   # failed (e.g. DNS not up yet at login): retry soon
             latest = pytwm_latest() or latest
             checked = time.monotonic()
         else:
@@ -589,8 +593,13 @@ def updates_watch():
 def package_updates():
     """[(name, new version)] for the packages with updates: checkupdates for the
     repositories (it syncs a temporary copy of the package lists, not the
-    system's) and package_manager -Qua for the AUR."""
-    lines = (output(["checkupdates"], 120) + output([*package_manager, "-Qua"], 120)).splitlines()
+    system's) and package_manager -Qua for the AUR. None when checkupdates
+    failed (it exits 0 with updates, 2 with none, 1 when it couldn't sync), so
+    a failed check isn't taken for "no repository updates"."""
+    repo = output('checkupdates; echo "$?"', 120).splitlines()
+    if not repo or repo[-1] not in ("0", "2"):
+        return None
+    lines = repo[:-1] + output([*package_manager, "-Qua"], 120).splitlines()
     return [(w[0], w[3]) for w in (line.split() for line in lines) if len(w) >= 4 and w[2] == "->"]
 
 
