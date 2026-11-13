@@ -156,7 +156,7 @@ notification_timeout = 10    # seconds
 
 Clicking a notification dismisses it and runs its default action, e.g. opens the browser tab it came from. `notify_next` only dismisses it.
 
-"Toggle notifications", in the system menu, pauses them: they wait until turned back on. Their sounds are muted too, for the apps that send them.
+"Toggle notifications", in the system menu, pauses them: they wait until turned back on. Their sounds are not: the apps play those themselves.
 
 ### Screen lock
 
@@ -347,7 +347,7 @@ A command is a list (`["prog", "arg"]`) or a shell line (`"prog | prog"`).
 | `update_status()` | update the status now |
 | `wm(func, value)` | call a window function from a menu, e.g. `wm(view, tagmask(3))` |
 | `lock(None)` | lock the screen |
-| `pause_notifications(True)` | pause notifications and their sounds (`False`: resume) |
+| `pause_notifications(True)` | pause notifications (`False`: resume) |
 | `notifications_paused()` | `True` while paused |
 | `tagmask(1, 2)` | the tags with these numbers |
 | `not_set_notify("name")` | a placeholder for a program not set |
